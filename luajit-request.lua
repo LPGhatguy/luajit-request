@@ -61,6 +61,11 @@ request = {
 		timeout = 1
 	},
 
+	version = "1.0.0",
+	version_major = 1,
+	version_minor = 0,
+	version_patch = 0,
+
 	--[[
 		Send an HTTP(S) request to the URL at 'url' using the HTTP method 'method'.
 		Use the 'args' parameter to optionally configure the request:
