@@ -61,26 +61,28 @@ request = {
 		timeout = 1
 	},
 
-	version = "1.0.0",
+	version = "1.1.0",
 	version_major = 1,
-	version_minor = 0,
+	version_minor = 1,
 	version_patch = 0,
 
 	--[[
 		Send an HTTP(S) request to the URL at 'url' using the HTTP method 'method'.
 		Use the 'args' parameter to optionally configure the request:
 			- method: HTTP method to use. Defaults to "GET", but can be any HTTP verb like "POST" or "PUT"
+			- headers: Dictionary of additional HTTP headers to send with request
 			- data: Dictionary or string to send as request body
 			- cookies: Dictionary table of cookies to send
 			- timeout: How long to wait for the connection to be made before giving up
 			- allow_redirects: Whether or not to allow redirection. Defaults to true
 			- stream_callback: A method to call with each piece of the response. If not specified, the entire page will be downloaded and returned.
-			- auth_type: Authentication method to use. Defaults to "none", but can also be "basic" or "digest"
+			- auth_type: Authentication method to use. Defaults to "none", but can also be "basic", "digest" or "negotiate"
 			- username: A username to use with authentication. 'auth_type' must also be specified.
 			- password: A password to use with authentication. 'auth_type' must also be specified.
 	]]
 	send = function(url, args)
 		local handle = curl.curl_easy_init()
+		local header_chunk
 		local out
 		args = args or {}
 
@@ -100,14 +102,22 @@ request = {
 			end
 		end
 
+		if (args.headers) then
+			for key, value in pairs(args.headers) do
+				header_chunk = curl.curl_slist_append(header_chunk, tostring(key) .. ":" .. tostring(value))
+			end
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPHEADER, header_chunk)
+		end
+
 		if (args.auth_type) then
 			local auth = string.upper(tostring(args.auth_type))
 
 			if (auth_map[auth]) then
-				curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPAUTH, auth_map[auth])
+				curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPAUTH, ffi.cast("long", auth_map[auth]))
 				curl.curl_easy_setopt(handle, curl.CURLOPT_USERNAME, tostring(args.username))
 				curl.curl_easy_setopt(handle, curl.CURLOPT_PASSWORD, tostring(args.password or ""))
-			else
+			elseif (auth ~= "NONE") then
 				error("Unsupported authentication type '" .. auth .. "'")
 			end
 		end
@@ -160,6 +170,7 @@ request = {
 
 		local result = curl.curl_easy_perform(handle)
 		curl.curl_easy_cleanup(handle)
+		curl.curl_slist_free_all(header_chunk)
 
 		if (result == curl.CURLE_OK) then
 			if (out) then
