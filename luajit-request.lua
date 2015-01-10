@@ -50,9 +50,9 @@ local function cookie_encode(str, name)
 end
 
 local auth_map = {
-	BASIC = curl.CURLAUTH_BASIC,
-	DIGEST = curl.CURLAUTH_DIGEST,
-	NEGOTIATE = curl.CURLAUTH_NEGOTIATE
+	BASIC = ffi.cast("long", curl.CURLAUTH_BASIC),
+	DIGEST = ffi.cast("long", curl.CURLAUTH_DIGEST),
+	NEGOTIATE = ffi.cast("long", curl.CURLAUTH_NEGOTIATE)
 }
 
 request = {
@@ -61,10 +61,10 @@ request = {
 		timeout = 1
 	},
 
-	version = "1.1.0",
+	version = "1.1.1",
 	version_major = 1,
 	version_minor = 1,
-	version_patch = 0,
+	version_patch = 1,
 
 	--[[
 		Send an HTTP(S) request to the URL at 'url' using the HTTP method 'method'.
@@ -114,7 +114,7 @@ request = {
 			local auth = string.upper(tostring(args.auth_type))
 
 			if (auth_map[auth]) then
-				curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPAUTH, ffi.cast("long", auth_map[auth]))
+				curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPAUTH, auth_map[auth])
 				curl.curl_easy_setopt(handle, curl.CURLOPT_USERNAME, tostring(args.username))
 				curl.curl_easy_setopt(handle, curl.CURLOPT_PASSWORD, tostring(args.password or ""))
 			elseif (auth ~= "NONE") then
