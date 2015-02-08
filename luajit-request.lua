@@ -61,10 +61,10 @@ request = {
 		timeout = 1
 	},
 
-	version = "1.1.1",
-	version_major = 1,
-	version_minor = 1,
-	version_patch = 1,
+	version = "2.0.0",
+	version_major = 2,
+	version_minor = 0,
+	version_patch = 0,
 
 	--[[
 		Send an HTTP(S) request to the URL at 'url' using the HTTP method 'method'.
@@ -75,15 +75,27 @@ request = {
 			- cookies: Dictionary table of cookies to send
 			- timeout: How long to wait for the connection to be made before giving up
 			- allow_redirects: Whether or not to allow redirection. Defaults to true
-			- stream_callback: A method to call with each piece of the response. If not specified, the entire page will be downloaded and returned.
+			- body_stream_callback: A method to call with each piece of the response body.
+			- header_stream_callback: A method to call with each piece of the resulting header.
 			- auth_type: Authentication method to use. Defaults to "none", but can also be "basic", "digest" or "negotiate"
 			- username: A username to use with authentication. 'auth_type' must also be specified.
 			- password: A password to use with authentication. 'auth_type' must also be specified.
+
+		If both body_stream_callback and header_stream_callback are defined, a boolean true will be returned instead of the following object.
+
+		The return object is a dictionary with the following members:
+			- code: The HTTP status code the response gave. Will not exist if header_stream_callback is defined above.
+			- body: The body of the response. Will not exist if body_stream_callback is defined above.
+			- headers: A dictionary of headers and their values. Will not exist if header_stream_callback is defined above.
+			- headers_raw: A raw string containing the actual headers the server sent back. Will not exist if header_stream_callback is defined above.
+			- set_cookies: A dictionary of cookies given by the "Set-Cookie" header from the server. Will not exist if the server did not set any cookies.
+
 	]]
 	send = function(url, args)
 		local handle = curl.curl_easy_init()
 		local header_chunk
-		local out
+		local out_buffer
+		local headers_buffer
 		args = args or {}
 
 		curl.curl_easy_setopt(handle, curl.CURLOPT_URL, url)
@@ -122,16 +134,30 @@ request = {
 			end
 		end
 
-		if (args.stream_callback) then
+		if (args.body_stream_callback) then
 			curl.curl_easy_setopt(handle, curl.CURLOPT_WRITEFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
-				args.stream_callback(ffi.string(data, size * nmeb))
+				args.body_stream_callback(ffi.string(data, size * nmeb))
 				return size * nmeb
 			end))
 		else
-			out = {}
+			out_buffer = {}
 
 			curl.curl_easy_setopt(handle, curl.CURLOPT_WRITEFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
-				table.insert(out, ffi.string(data, size * nmeb))
+				table.insert(out_buffer, ffi.string(data, size * nmeb))
+				return size * nmeb
+			end))
+		end
+
+		if (args.header_stream_callback) then
+			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
+				args.header_stream_callback(ffi.string(data, size * nmeb))
+				return size * nmeb
+			end))
+		else
+			headers_buffer = {}
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
+				table.insert(headers_buffer, ffi.string(data, size * nmeb))
 				return size * nmeb
 			end))
 		end
@@ -156,12 +182,20 @@ request = {
 		end
 
 		if (args.cookies) then
-			local buffer = {}
-			for key, value in pairs(args.cookies) do
-				table.insert(buffer, ("%s=%s"):format(cookie_encode(key, true), cookie_encode(value)))
+			local cookie_out
+
+			if (type(args.cookies) == "table") then
+				local buffer = {}
+				for key, value in pairs(args.cookies) do
+					table.insert(buffer, ("%s=%s"):format(cookie_encode(key, true), cookie_encode(value)))
+				end
+
+				cookie_out = table.concat(buffer, "; ")
+			else
+				cookie_out = tostring(args.cookies)
 			end
 
-			curl.curl_easy_setopt(handle, curl.CURLOPT_COOKIE, table.concat(buffer, "; "))
+			curl.curl_easy_setopt(handle, curl.CURLOPT_COOKIE, cookie_out)
 		end
 
 		if (tonumber(args.timeout)) then
@@ -173,8 +207,41 @@ request = {
 		curl.curl_slist_free_all(header_chunk)
 
 		if (result == curl.CURLE_OK) then
-			if (out) then
-				return table.concat(out)
+			if (out_buffer or headers_buffer) then
+				local headers, status, parsed_headers, set_cookies
+
+				if (headers_buffer) then
+					headers = table.concat(headers_buffer)
+					status = headers:match("%s+(%d+)%s+")
+
+					parsed_headers = {}
+
+					for key, value in headers:gmatch("\n([^:]+):%s*([^\r\n]*)") do
+						parsed_headers[key] = value
+					end
+
+					if (parsed_headers["Set-Cookie"]) then
+						set_cookies = {}
+
+						-- Get unquoted cookie values
+						for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=([^;]*)") do
+							set_cookies[key] = value
+						end
+
+						-- Get quoted cookie values
+						for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=(%b\"\")") do
+							set_cookies[key] = value:sub(2, -2)
+						end
+					end
+				end
+
+				return {
+					body = table.concat(out_buffer),
+					headers = parsed_headers,
+					set_cookies = set_cookies,
+					code = status,
+					raw_headers = headers
+				}
 			else
 				return true
 			end

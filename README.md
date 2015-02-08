@@ -6,15 +6,17 @@ A simple HTTP(S) request module in pure LuaJIT. Requires libcurl binaries with S
 ### Simple GET
 ```lua
 local request = require("luajit-request")
+local response = request.send("https://example.com")
 
-print(request.send("https://example.com"))
+print(response.code)
+print(response.body)
 ```
 
 ### Digest Authentication and Cookies
 ```lua
 local request = require("luajit-request")
 
-print(request.send("https://example.com", {
+local response = request.send("https://example.com", {
 	cookies = {
 		hello = "world"
 	},
@@ -22,17 +24,23 @@ print(request.send("https://example.com", {
 	auth_type = "digest",
 	username = "user",
 	password = "pass"
-}))
+})
+
+print(response.body)
+print(response.set_cookies)
 ```
 
 ### Forms
 ```lua
 local request = require("luajit-request")
 
-print(request.send("https://example.com", {
+local response = request.send("https://example.com", {
 	method = "POST",
 	data = {
 		hello = "world"
 	}
-}))
+})
+
+print(response.code)
+print(response.body)
 ```
