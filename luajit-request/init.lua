@@ -24,8 +24,10 @@ not be misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 ]]
 
+local path = (...):gsub("%.init$", ""):match("%.?(.-)$") .. "."
+
 local ffi = require("ffi")
-local curl = require("luajit-curl")
+local curl = require(path .. "luajit-curl")
 local request
 
 local function url_encode(str)
