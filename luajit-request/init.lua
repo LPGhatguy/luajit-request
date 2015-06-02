@@ -168,7 +168,7 @@ request = {
 		if (args.transfer_info_callback) then
 			curl.curl_easy_setopt(handle, curl.CURLOPT_NOPROGRESS, 0)
 			curl.curl_easy_setopt(handle, curl.CURLOPT_XFERINFOFUNCTION, ffi.cast("curl_xferinfo_callback", function(client, dltotal, dlnow, ultotal, ulnow)
-				args.transfer_info_callback(tonumber(dltotal), tonumber(dlnow), tonumber(ultotal), tonumber(ulnow)
+				args.transfer_info_callback(tonumber(dltotal), tonumber(dlnow), tonumber(ultotal), tonumber(ulnow))
 				return 0
 			end))
 		end
