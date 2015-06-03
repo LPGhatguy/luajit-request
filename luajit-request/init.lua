@@ -79,6 +79,7 @@ request = {
 			- allow_redirects: Whether or not to allow redirection. Defaults to true
 			- body_stream_callback: A method to call with each piece of the response body.
 			- header_stream_callback: A method to call with each piece of the resulting header.
+			- transfer_info_callback: A method to call with transfer progress data.
 			- auth_type: Authentication method to use. Defaults to "none", but can also be "basic", "digest" or "negotiate"
 			- username: A username to use with authentication. 'auth_type' must also be specified.
 			- password: A password to use with authentication. 'auth_type' must also be specified.
@@ -161,6 +162,14 @@ request = {
 			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
 				table.insert(headers_buffer, ffi.string(data, size * nmeb))
 				return size * nmeb
+			end))
+		end
+
+		if (args.transfer_info_callback) then
+			curl.curl_easy_setopt(handle, curl.CURLOPT_NOPROGRESS, 0)
+			curl.curl_easy_setopt(handle, curl.CURLOPT_XFERINFOFUNCTION, ffi.cast("curl_xferinfo_callback", function(client, dltotal, dlnow, ultotal, ulnow)
+				args.transfer_info_callback(tonumber(dltotal), tonumber(dlnow), tonumber(ultotal), tonumber(ulnow))
+				return 0
 			end))
 		end
 
