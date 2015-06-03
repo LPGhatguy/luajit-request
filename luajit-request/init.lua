@@ -63,9 +63,9 @@ request = {
 		timeout = 1
 	},
 
-	version = "2.1.0",
+	version = "2.2.0",
 	version_major = 2,
-	version_minor = 1,
+	version_minor = 2,
 	version_patch = 0,
 
 	--[[
