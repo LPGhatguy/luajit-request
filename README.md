@@ -50,7 +50,25 @@ print(response.code)
 print(response.body)
 ```
 
+### Stream file (2.3+)
+```lua
+local request = require("luajit-request")
+
+local result, err, message = request.send("https://www.posttestserver.com/post.php", {
+	method = "POST",
+	files = {
+		readme = "README.md"
+	}
+})
+
+if (not result) then
+	print(err, message)
+end
+
+print(result.body)
+```
+
 [shield_license]: https://img.shields.io/badge/license-zlib/libpng-333333.svg?style=flat-square
-[shield_release_version]: https://img.shields.io/badge/release-2.2.0-brightgreen.svg?style=flat-square
+[shield_release_version]: https://img.shields.io/badge/release-2.3.0-brightgreen.svg?style=flat-square
 [shield_prerelease_version]: https://img.shields.io/badge/prerelease-none-lightgrey.svg?style=flat-square
 [shield_dev_version]: https://img.shields.io/badge/in_development-none-lightgrey.svg?style=flat-square

@@ -3,7 +3,7 @@ LuaJIT-Request
 Lucien Greathouse
 Wrapper for LuaJIT-cURL for easy HTTP(S) requests.
 
-Copyright (c) 2014 lucien Greathouse
+Copyright (c) 2015 lucien Greathouse
 
 This software is provided 'as-is', without any express
 or implied warranty. In no event will the authors be held
@@ -57,15 +57,31 @@ local auth_map = {
 	NEGOTIATE = ffi.cast("long", curl.CURLAUTH_NEGOTIATE)
 }
 
-request = {
-	error = {
-		unknown = 0,
-		timeout = 1
-	},
+local errors = {
+	unknown = 0,
+	timeout = 1,
+	connect = 2,
+	resolve_host = 3
+}
 
-	version = "2.2.0",
+local code_map = {
+	[curl.CURLE_OPERATION_TIMEDOUT] = {
+		errors.timeout, "Connection timed out"
+	},
+	[curl.CURLE_COULDNT_RESOLVE_HOST] = {
+		errors.resolve_host, "Couldn't resolve host"
+	},
+	[curl.CURLE_COULDNT_CONNECT] = {
+		errors.connect, "Couldn't connect to host"
+	}
+}
+
+request = {
+	error = errors,
+
+	version = "2.3.0",
 	version_major = 2,
-	version_minor = 2,
+	version_minor = 3,
 	version_patch = 0,
 
 	--[[
@@ -83,6 +99,7 @@ request = {
 			- auth_type: Authentication method to use. Defaults to "none", but can also be "basic", "digest" or "negotiate"
 			- username: A username to use with authentication. 'auth_type' must also be specified.
 			- password: A password to use with authentication. 'auth_type' must also be specified.
+			- files: A dictionary of file names to their paths on disk to upload via stream.
 
 		If both body_stream_callback and header_stream_callback are defined, a boolean true will be returned instead of the following object.
 
@@ -100,6 +117,9 @@ request = {
 		local out_buffer
 		local headers_buffer
 		args = args or {}
+
+		local callbacks = {}
+		local gc_handles = {}
 
 		curl.curl_easy_setopt(handle, curl.CURLOPT_URL, url)
 		curl.curl_easy_setopt(handle, curl.CURLOPT_SSL_VERIFYPEER, 1)
@@ -138,39 +158,59 @@ request = {
 		end
 
 		if (args.body_stream_callback) then
-			curl.curl_easy_setopt(handle, curl.CURLOPT_WRITEFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
+			local callback = ffi.cast("curl_callback", function(data, size, nmeb, user)
 				args.body_stream_callback(ffi.string(data, size * nmeb))
 				return size * nmeb
-			end))
+			end)
+
+			table.insert(callbacks, callback)
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_WRITEFUNCTION, callback)
 		else
 			out_buffer = {}
 
-			curl.curl_easy_setopt(handle, curl.CURLOPT_WRITEFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
+			local callback = ffi.cast("curl_callback", function(data, size, nmeb, user)
 				table.insert(out_buffer, ffi.string(data, size * nmeb))
 				return size * nmeb
-			end))
+			end)
+
+			table.insert(callbacks, callback)
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_WRITEFUNCTION, callback)
 		end
 
 		if (args.header_stream_callback) then
-			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
+			local callback = ffi.cast("curl_callback", function(data, size, nmeb, user)
 				args.header_stream_callback(ffi.string(data, size * nmeb))
 				return size * nmeb
-			end))
+			end)
+
+			table.insert(callbacks, callback)
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, callback)
 		else
 			headers_buffer = {}
 
-			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, ffi.cast("curl_callback", function(data, size, nmeb, user)
+			local callback = ffi.cast("curl_callback", function(data, size, nmeb, user)
 				table.insert(headers_buffer, ffi.string(data, size * nmeb))
 				return size * nmeb
-			end))
+			end)
+
+			table.insert(callbacks, callback)
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_HEADERFUNCTION, callback)
 		end
 
 		if (args.transfer_info_callback) then
-			curl.curl_easy_setopt(handle, curl.CURLOPT_NOPROGRESS, 0)
-			curl.curl_easy_setopt(handle, curl.CURLOPT_XFERINFOFUNCTION, ffi.cast("curl_xferinfo_callback", function(client, dltotal, dlnow, ultotal, ulnow)
+			local callback = ffi.cast("curl_xferinfo_callback", function(client, dltotal, dlnow, ultotal, ulnow)
 				args.transfer_info_callback(tonumber(dltotal), tonumber(dlnow), tonumber(ultotal), tonumber(ulnow))
 				return 0
-			end))
+			end)
+
+			table.insert(callbacks, callback)
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_NOPROGRESS, 0)
+			curl.curl_easy_setopt(handle, curl.CURLOPT_XFERINFOFUNCTION, callback)
 		end
 
 		if (args.follow_redirects == nil) then
@@ -190,6 +230,27 @@ request = {
 			else
 				curl.curl_easy_setopt(handle, curl.CURLOPT_POSTFIELDS, tostring(args.data))
 			end
+		end
+
+		local post
+		if (args.files) then
+			post = ffi.new("struct curl_httppost*[1]")
+			local lastptr = ffi.new("struct curl_httppost*[1]")
+
+			for key, value in pairs(args.files) do
+				local file = ffi.new("char[?]", #value, value)
+
+				table.insert(gc_handles, file)
+
+				local res = curl.curl_formadd(
+					post, lastptr,
+					ffi.new("int", curl.CURLFORM_COPYNAME), key,
+					ffi.new("int", curl.CURLFORM_FILE), file,
+					ffi.new("int", curl.CURLFORM_END)
+				)
+			end
+
+			curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPPOST, post[0])
 		end
 
 		if (args.cookies) then
@@ -213,54 +274,69 @@ request = {
 			curl.curl_easy_setopt(handle, curl.CURLOPT_CONNECTTIMEOUT, tonumber(args.timeout))
 		end
 
-		local result = curl.curl_easy_perform(handle)
-		curl.curl_easy_cleanup(handle)
-		curl.curl_slist_free_all(header_chunk)
+		local code = curl.curl_easy_perform(handle)
 
-		if (result == curl.CURLE_OK) then
-			if (out_buffer or headers_buffer) then
-				local headers, status, parsed_headers, set_cookies
+		if (code ~= curl.CURLE_OK) then
+			local num = tonumber(code)
 
-				if (headers_buffer) then
-					headers = table.concat(headers_buffer)
-					status = headers:match("%s+(%d+)%s+")
+			if (code_map[num]) then
+				return false, code_map[num][1], code_map[num][2]
+			end
 
-					parsed_headers = {}
+			return false, request.error.unknown, "Unknown error", num
+		end
 
-					for key, value in headers:gmatch("\n([^:]+):%s*([^\r\n]*)") do
-						parsed_headers[key] = value
-					end
+		local out
 
-					if (parsed_headers["Set-Cookie"]) then
-						set_cookies = {}
+		if (out_buffer or headers_buffer) then
+			local headers, status, parsed_headers, set_cookies
 
-						-- Get unquoted cookie values
-						for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=([^;]*)") do
-							set_cookies[key] = value
-						end
+			if (headers_buffer) then
+				headers = table.concat(headers_buffer)
+				status = headers:match("%s+(%d+)%s+")
 
-						-- Get quoted cookie values
-						for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=(%b\"\")") do
-							set_cookies[key] = value:sub(2, -2)
-						end
-					end
+				parsed_headers = {}
+
+				for key, value in headers:gmatch("\n([^:]+):%s*([^\r\n]*)") do
+					parsed_headers[key] = value
 				end
 
-				return {
-					body = table.concat(out_buffer),
-					headers = parsed_headers,
-					set_cookies = set_cookies,
-					code = status,
-					raw_headers = headers
-				}
-			else
-				return true
+				if (parsed_headers["Set-Cookie"]) then
+					set_cookies = {}
+
+					-- Get unquoted cookie values
+					for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=([^;]*)") do
+						set_cookies[key] = value
+					end
+
+					-- Get quoted cookie values
+					for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=(%b\"\")") do
+						set_cookies[key] = value:sub(2, -2)
+					end
+				end
 			end
-		elseif (result == curl.CURLE_OPERATION_TIMEDOUT) then
-			return false, request.error.timeout, "Connection timed out"
+
+			out = {
+				body = table.concat(out_buffer),
+				headers = parsed_headers,
+				set_cookies = set_cookies,
+				code = status,
+				raw_headers = headers
+			}
 		else
-			return false, request.error.unknown, "Unknown error"
+			out = true
 		end
+
+		curl.curl_easy_cleanup(handle)
+		curl.curl_slist_free_all(header_chunk)
+		curl.curl_formfree(post[0])
+		gc_handles = {}
+
+		for i, v in ipairs(callbacks) do
+			v:free()
+		end
+
+		return out
 	end,
 
 	init = function()

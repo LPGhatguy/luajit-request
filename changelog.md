@@ -1,6 +1,12 @@
 # LuaJIT-Request Changelog
 
-![2.2.0](https://img.shields.io/badge/2.2.0-latest-brightgreen.svg?style=flat-square)
+![2.3.0](https://img.shields.io/badge/2.3.0-latest-brightgreen.svg?style=flat-square)
+- Added `files` argument for streaming file uploads by filename
+- Added new error codes
+- Fixed "too many callbacks" during heavy use
+- Fixed occasional use-after-free segfaults
+
+![2.2.0](https://img.shields.io/badge/2.2.0-unsupported-red.svg?style=flat-square)
 - Added `transfer_info_callback` argument, thanks, Billiam!
 
 ![2.1.0](https://img.shields.io/badge/2.1.0-unsupported-red.svg?style=flat-square)

@@ -113,7 +113,7 @@ enum {
 ffi.cdef([[
 typedef void CURL;
 typedef int curl_socket_t;
-struct curl_httppost {
+typedef struct curl_httppost {
 struct curl_httppost *next;
 char *name;
 long namelength;
