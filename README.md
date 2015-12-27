@@ -4,7 +4,7 @@
 ![shield_prerelease_version]
 ![shield_dev_version]
 
-A simple HTTP(S) request module in pure LuaJIT. Requires libcurl binaries with SSL support, which can be obtained from the curl website. Alternatively, you can download them from the GitHub releases section.
+A simple HTTP(S) request module in pure LuaJIT. Requires libcurl binaries with SSL support, which come preinstalled on OS X and many Linux distributions. On Windows, binaries can be obtained from distribution sites like [this one (look for "CURL" in the sidebar)](http://www.paehl.com/open_source/)
 
 ## Usage
 
