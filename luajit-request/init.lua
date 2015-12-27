@@ -329,7 +329,10 @@ request = {
 
 		curl.curl_easy_cleanup(handle)
 		curl.curl_slist_free_all(header_chunk)
-		curl.curl_formfree(post[0])
+
+		if (post) then
+			curl.curl_formfree(post[0])
+		end
 		gc_handles = {}
 
 		for i, v in ipairs(callbacks) do
