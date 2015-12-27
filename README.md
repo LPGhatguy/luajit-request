@@ -69,6 +69,6 @@ print(result.body)
 ```
 
 [shield_license]: https://img.shields.io/badge/license-zlib/libpng-333333.svg?style=flat-square
-[shield_release_version]: https://img.shields.io/badge/release-2.3.0-brightgreen.svg?style=flat-square
+[shield_release_version]: https://img.shields.io/badge/release-2.3.1-brightgreen.svg?style=flat-square
 [shield_prerelease_version]: https://img.shields.io/badge/prerelease-none-lightgrey.svg?style=flat-square
 [shield_dev_version]: https://img.shields.io/badge/in_development-none-lightgrey.svg?style=flat-square

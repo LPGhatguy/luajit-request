@@ -1,6 +1,9 @@
 # LuaJIT-Request Changelog
 
-![2.3.0](https://img.shields.io/badge/2.3.0-latest-brightgreen.svg?style=flat-square)
+![2.3.1](https://img.shields.io/badge/2.3.1-latest-brightgreen.svg?style=flat-square)
+- Fixed most requests not working; we need a test suite!
+
+![2.3.0](https://img.shields.io/badge/2.3.0-unsupported-red.svg?style=flat-square)
 - Added `files` argument for streaming file uploads by filename
 - Added new error codes
 - Fixed "too many callbacks" during heavy use
