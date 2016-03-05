@@ -300,7 +300,7 @@ request = {
 
 				parsed_headers = {}
 
-				for key, value in headers:gmatch("\n([^:]+):%s*([^\r\n]*)") do
+				for key, value in headers:gmatch("\n([^:]+): *([^\r\n]*)") do
 					parsed_headers[key] = value
 				end
 			end
