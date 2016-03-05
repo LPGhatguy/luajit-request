@@ -253,6 +253,9 @@ request = {
 			curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPPOST, post[0])
 		end
 
+		-- Enable the cookie engine
+		curl.curl_easy_setopt(handle, curl.CURLOPT_COOKIEFILE, "")
+
 		if (args.cookies) then
 			local cookie_out
 
@@ -289,7 +292,7 @@ request = {
 		local out
 
 		if (out_buffer or headers_buffer) then
-			local headers, status, parsed_headers, set_cookies
+			local headers, status, parsed_headers, raw_cookies, set_cookies
 
 			if (headers_buffer) then
 				headers = table.concat(headers_buffer)
@@ -300,25 +303,28 @@ request = {
 				for key, value in headers:gmatch("\n([^:]+):%s*([^\r\n]*)") do
 					parsed_headers[key] = value
 				end
+			end
 
-				if (parsed_headers["Set-Cookie"]) then
-					set_cookies = {}
-
-					-- Get unquoted cookie values
-					for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=([^;]*)") do
-						set_cookies[key] = value
-					end
-
-					-- Get quoted cookie values
-					for key, value in parsed_headers["Set-Cookie"]:gmatch("%s*([^=]+)=(%b\"\")") do
-						set_cookies[key] = value:sub(2, -2)
-					end
-				end
+			local cookielist = ffi.new("struct curl_slist*[1]")
+			curl.curl_easy_getinfo(handle, curl.CURLINFO_COOKIELIST, cookielist)
+			if cookielist[0] ~= nil then
+				raw_cookies, set_cookies = {}, {}
+				local cookielist = ffi.gc(cookielist[0], curl.curl_slist_free_all)
+				local cookie = cookielist
+				repeat
+					local raw = ffi.string(cookie[0].data)
+					table.insert(raw_cookies, raw)
+					print(raw)
+					local domain, subdomains, path, secure, expiration, name, value = raw:match("^(.-)\t(.-)\t(.-)\t(.-)\t(.-)\t(.-)\t(.*)$")
+					set_cookies[name] = value
+					cookie = cookie[0].next
+				until cookie == nil
 			end
 
 			out = {
 				body = table.concat(out_buffer),
 				headers = parsed_headers,
+				raw_cookies = raw_cookies,
 				set_cookies = set_cookies,
 				code = status,
 				raw_headers = headers
