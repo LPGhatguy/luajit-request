@@ -79,9 +79,9 @@ local code_map = {
 request = {
 	error = errors,
 
-	version = "2.3.0",
+	version = "2.4.0",
 	version_major = 2,
-	version_minor = 3,
+	version_minor = 4,
 	version_patch = 0,
 
 	--[[

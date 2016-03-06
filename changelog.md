@@ -1,6 +1,10 @@
 # LuaJIT-Request Changelog
 
-![2.3.1](https://img.shields.io/badge/2.3.1-latest-brightgreen.svg?style=flat-square)
+![2.4.0](https://img.shields.io/badge/2.4.0-latest-brightgreen.svg?style=flat-square)
+- Switched to cURL's cookie engine for better cookie handling (bartbes)
+- Fixed problems with empty headers (bartbes)
+
+![2.3.1](https://img.shields.io/badge/2.3.1-unsupported-red.svg?style=flat-square)
 - Fixed most requests not working; we need a test suite!
 
 ![2.3.0](https://img.shields.io/badge/2.3.0-unsupported-red.svg?style=flat-square)
