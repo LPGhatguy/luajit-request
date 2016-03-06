@@ -3,7 +3,7 @@ LuaJIT-Request
 Lucien Greathouse
 Wrapper for LuaJIT-cURL for easy HTTP(S) requests.
 
-Copyright (c) 2015 lucien Greathouse
+Copyright (c) 2016 Lucien Greathouse
 
 This software is provided 'as-is', without any express
 or implied warranty. In no event will the authors be held
@@ -311,10 +311,11 @@ request = {
 				raw_cookies, set_cookies = {}, {}
 				local cookielist = ffi.gc(cookielist[0], curl.curl_slist_free_all)
 				local cookie = cookielist
+
 				repeat
 					local raw = ffi.string(cookie[0].data)
 					table.insert(raw_cookies, raw)
-					print(raw)
+
 					local domain, subdomains, path, secure, expiration, name, value = raw:match("^(.-)\t(.-)\t(.-)\t(.-)\t(.-)\t(.-)\t(.*)$")
 					set_cookies[name] = value
 					cookie = cookie[0].next
