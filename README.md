@@ -1,10 +1,8 @@
 # LuaJIT-Request
 ![shield_license]
 ![shield_release_version]
-![shield_prerelease_version]
-![shield_dev_version]
 
-A simple HTTP(S) request module in pure LuaJIT. Requires libcurl binaries with SSL support, which come preinstalled on OS X and many Linux distributions. On Windows, binaries can be obtained from distribution sites like [this one (look for "CURL" in the sidebar)](http://www.paehl.com/open_source/)
+A simple HTTP(S) request module in pure LuaJIT. Requires libcurl binaries with SSL support, which come preinstalled on macOS and many Linux distributions. On Windows, binaries can be obtained from https://curl.haxx.se/download.html
 
 ## Usage
 
@@ -70,5 +68,3 @@ print(result.body)
 
 [shield_license]: https://img.shields.io/badge/license-zlib/libpng-333333.svg?style=flat-square
 [shield_release_version]: https://img.shields.io/badge/release-2.4.0-brightgreen.svg?style=flat-square
-[shield_prerelease_version]: https://img.shields.io/badge/prerelease-none-lightgrey.svg?style=flat-square
-[shield_dev_version]: https://img.shields.io/badge/in_development-none-lightgrey.svg?style=flat-square
