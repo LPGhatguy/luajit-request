@@ -153,6 +153,7 @@ request = {
 				curl.curl_easy_setopt(handle, curl.CURLOPT_HTTPGET, 1)
 			elseif (method == "POST") then
 				curl.curl_easy_setopt(handle, curl.CURLOPT_POST, 1)
+				args.data = args.data or "" -- https://github.com/curl/curl/issues/1625#issuecomment-312456910
 			else
 				curl.curl_easy_setopt(handle, curl.CURLOPT_CUSTOMREQUEST, method)
 			end
