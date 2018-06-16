@@ -296,7 +296,19 @@ request = {
 			local headers, status, parsed_headers, raw_cookies, set_cookies
 
 			if (headers_buffer) then
-				headers = table.concat(headers_buffer)
+				-- In case we got multiple responses (e.g. 100 - Continue or 302 Redirects)
+				-- we want to only return the last response
+				local start_index = 1
+				for i, resp_line in ipairs(headers_buffer) do
+					if resp_line:match("^HTTP/(.-)%s+(%d+)%s+(.+)\r\n$") then
+						start_index = i
+					end
+				end
+				local last_request_headers = {}
+				for i = start_index, #headers_buffer do
+					table.insert(last_request_headers, headers_buffer[i])
+				end
+				headers = table.concat(last_request_headers)
 				status = tonumber(headers:match("%s+(%d+)%s+"))
 
 				parsed_headers = {}
