@@ -126,6 +126,26 @@ request = {
 		curl.curl_easy_setopt(handle, curl.CURLOPT_SSL_VERIFYPEER, 1)
 		curl.curl_easy_setopt(handle, curl.CURLOPT_SSL_VERIFYHOST, 2)
 
+		if (args.data and type(args.data) ~= "table") then
+			local default_content_type = "application/octet-stream"
+			if (not args.headers) then
+				args.headers = {
+					["content-type"] = default_content_type
+				}
+			else
+				local has_content_type = false
+				for header_name, _ in pairs(args.headers) do
+					if header_name:lower() == "content-type" then
+						has_content_type = true
+						break
+					end
+				end
+				if not has_content_type then
+					args.headers["content-type"] = default_content_type
+				end
+			end
+		end
+
 		if (args.method) then
 			local method = string.upper(tostring(args.method))
 
