@@ -296,7 +296,7 @@ request = {
 
 			if (headers_buffer) then
 				headers = table.concat(headers_buffer)
-				status = headers:match("%s+(%d+)%s+")
+				status = tonumber(headers:match("%s+(%d+)%s+"))
 
 				parsed_headers = {}
 
